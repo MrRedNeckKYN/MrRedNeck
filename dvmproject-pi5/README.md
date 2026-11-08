@@ -1,6 +1,6 @@
 # DVMProject software on Raspberry Pi 5
 
-This folder provides a cautious installer and updater for the official [DVMProject dvmhost repository](https://github.com/DVMProject/dvmhost). It is for a Raspberry Pi 5 running Raspberry Pi OS, either 64-bit or 32-bit.
+This folder provides a cautious installer and updater for the official [DVMProject dvmhost repository](https://github.com/DVMProject/dvmhost). It is for a Raspberry Pi 5 running Raspberry Pi OS or Debian (including Debian 13/Trixie), either 64-bit or 32-bit.
 
 `dvmhost` and [dvmconsole](https://github.com/DVMProject/dvmconsole) are separate applications. The scripts install **dvmhost only**. The official dvmconsole source identifies it as a Windows WPF desktop application built with Visual Studio and .NET, and instructs users to select x86 (with separate x64 vocoder builds supported). It does not provide a Raspberry Pi OS/Linux build or installation method. For that reason, this folder deliberately does not claim to install dvmconsole on a Pi 5. Run dvmconsole on a supported Windows computer and point it at your configured DVM FNE as documented upstream.
 
@@ -8,12 +8,12 @@ It builds the official `master` branch natively and installs the project in the 
 
 ## Before you begin
 
-- Use a Raspberry Pi 5 with Raspberry Pi OS and internet access.
+- Use a Raspberry Pi 5 with Raspberry Pi OS or Debian and internet access.
 - Copy this whole folder to the Pi. Do not copy only one script: the two scripts use `libdvm.sh`.
 - Do not run the scripts as a download pipe. Read them first, then run them from the copied folder.
 - The install needs an account that can use `sudo`.
 
-The scripts verify Raspberry Pi OS, the Raspberry Pi 5 model, and the CPU architecture before changing anything. They only install the documented build requirements: `build-essential`, `cmake`, `git`, `libasio-dev`, `libncurses-dev`, and `libssl-dev`.
+The scripts verify the Raspberry Pi 5 model, CPU architecture, and either Raspberry Pi OS or Debian before changing anything. They only install the documented build requirements: `build-essential`, `cmake`, `git`, `libasio-dev`, `libncurses-dev`, and `libssl-dev`.
 
 ## Install
 

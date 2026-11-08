@@ -41,10 +41,22 @@ setup_sudo() {
 }
 
 verify_raspberry_pi_5() {
-  [[ -r /etc/os-release ]] || die "This does not look like Raspberry Pi OS (/etc/os-release is missing)."
+  [[ -r /etc/os-release ]] || die "Cannot identify the operating system (/etc/os-release is missing)."
   # shellcheck disable=SC1091
   . /etc/os-release
-  [[ "${ID:-}" == "raspbian" ]] || die "This script is for Raspberry Pi OS (found: ${PRETTY_NAME:-unknown})."
+  case "${ID:-}" in
+    raspbian)
+      os_label="Raspberry Pi OS"
+      ;;
+    debian)
+      # Debian's packages provide the same documented dvmhost build dependencies.
+      # Keep the board/architecture checks below: generic Debian machines are not supported here.
+      os_label="Debian (${VERSION_CODENAME:-unknown})"
+      ;;
+    *)
+      die "This script supports Raspberry Pi OS or Debian on a Raspberry Pi 5 (found: ${PRETTY_NAME:-unknown})."
+      ;;
+  esac
 
   local model architecture
   model="$(tr -d '\0' </proc/device-tree/model 2>/dev/null || true)"
@@ -52,10 +64,13 @@ verify_raspberry_pi_5() {
   [[ "$model" == *"Raspberry Pi 5"* ]] || die "This script is for a Raspberry Pi 5 (found: ${model:-unknown})."
   case "$architecture" in
     aarch64|armv7l) ;;
-    *) die "Unsupported CPU architecture: $architecture. Expected 64-bit (aarch64) or 32-bit (armv7l) Raspberry Pi OS." ;;
+    *) die "Unsupported CPU architecture: $architecture. Expected 64-bit (aarch64) or 32-bit (armv7l) on a Raspberry Pi." ;;
   esac
 
-  echo "Verified: $model; Raspberry Pi OS; architecture $architecture."
+  echo "Verified: $model; $os_label; architecture $architecture."
+  if [[ "${ID:-}" == "debian" ]]; then
+    echo "Note: Debian is accepted for the documented build dependencies. Pi-specific GPIO/serial setup is intentionally not automated."
+  fi
 }
 
 install_dependencies() {
