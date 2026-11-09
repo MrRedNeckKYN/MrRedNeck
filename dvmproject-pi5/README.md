@@ -20,7 +20,7 @@ The scripts verify the Raspberry Pi 5 model, CPU architecture, and either Raspbe
 In a terminal on the Pi, go to the copied folder and run:
 
 ```bash
-chmod +x install-dvmhost.sh update-dvmhost.sh
+chmod +x install-dvmhost.sh update-dvmhost.sh enable-dvmhost-service.sh
 ./install-dvmhost.sh
 ```
 
@@ -51,9 +51,22 @@ After an update, compare `/opt/dvm/config.example.yml` with your `config.yml` an
 
 For an STM32 modem attached through the Pi GPIO serial port, DVMProject documents separate changes to Bluetooth, the serial getty, device-tree overlays, and the kernel command line. Those settings can disable Bluetooth or serial console access, and their paths vary by Raspberry Pi OS release. They are deliberately **not** made by these scripts. Follow the official [dvmhost Raspberry Pi preparation notes](https://github.com/DVMProject/dvmhost#raspberry-pi-preparation-notes) only when they apply to your exact modem.
 
-## Service setup
+## Start automatically at boot
 
-Upstream supports an optional `old_install-service` build target, but dvmhost does not require a service. No service is created here so that a new install cannot start with an unreviewed radio configuration. If you decide to use systemd later, review the upstream service file and point it at your completed `/opt/dvm/config.yml`.
+After you have reviewed `/opt/dvm/config.yml`, configured `/opt/dvm/iden_table.dat` for your authorized RF plan, and connected the modem, run:
+
+```bash
+./enable-dvmhost-service.sh
+```
+
+This idempotent helper creates the restricted `dvmhost` service account, grants it serial-device access, sets the unchanged upstream-relative log and identity-table paths to `/opt/dvm`, and enables a systemd service for future boots. It backs up an existing service unit or configuration before changing either. It does not start dvmhost immediately, so a missing modem cannot make the setup appear to fail.
+
+The service retries every 10 seconds if the modem is unavailable during boot. To start or check it after connecting the modem:
+
+```bash
+sudo systemctl start dvmhost.service
+sudo systemctl status dvmhost.service --no-pager
+```
 
 ## dvmconsole
 

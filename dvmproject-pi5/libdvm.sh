@@ -147,4 +147,46 @@ build_and_install() {
   else
     echo "Kept your existing $DVM_INSTALL_DIR/config.yml unchanged."
   fi
+
+  prepare_runtime_layout
+}
+
+backup_active_config() {
+  local backup_dir
+  backup_dir="$DVM_INSTALL_DIR/backups/$(date +%Y%m%d-%H%M%S)"
+  "${SUDO[@]}" install -d -m 0700 "$backup_dir"
+  "${SUDO[@]}" cp -a "$DVM_INSTALL_DIR/config.yml" "$backup_dir/config.yml"
+  echo "Backed up your active configuration to $backup_dir/config.yml"
+}
+
+prepare_runtime_layout() {
+  "${SUDO[@]}" test -f "$DVM_INSTALL_DIR/config.yml" || die "Missing $DVM_INSTALL_DIR/config.yml."
+
+  # Do not invent frequency data. A missing table receives the upstream example,
+  # but it must be edited for the user's authorized RF plan before dvmhost starts.
+  if ! "${SUDO[@]}" test -e "$DVM_INSTALL_DIR/iden_table.dat" && "${SUDO[@]}" test -f "$DVM_INSTALL_DIR/iden_table.example.dat"; then
+    "${SUDO[@]}" install -m 0640 "$DVM_INSTALL_DIR/iden_table.example.dat" "$DVM_INSTALL_DIR/iden_table.dat"
+    echo "Created $DVM_INSTALL_DIR/iden_table.dat from the upstream example; configure its frequencies before starting dvmhost."
+  fi
+
+  # The upstream example uses relative paths. Make only its unchanged defaults
+  # absolute, so a systemd service has the same file locations as a manual run.
+  local needs_config_update=0
+  if "${SUDO[@]}" grep -Eq '^[[:space:]]*filePath:[[:space:]]*\.[[:space:]]*$' "$DVM_INSTALL_DIR/config.yml" || \
+     "${SUDO[@]}" grep -Eq '^[[:space:]]*activityFilePath:[[:space:]]*\.[[:space:]]*$' "$DVM_INSTALL_DIR/config.yml" || \
+     { "${SUDO[@]}" test -f "$DVM_INSTALL_DIR/iden_table.dat" && "${SUDO[@]}" grep -Eq '^[[:space:]]*file:[[:space:]]*iden_table\.dat[[:space:]]*$' "$DVM_INSTALL_DIR/config.yml"; }; then
+    needs_config_update=1
+  fi
+  if ((needs_config_update)); then
+    backup_active_config
+    "${SUDO[@]}" sed -i \
+      -e 's|^\([[:space:]]*\)filePath:[[:space:]]*\.[[:space:]]*$|\1filePath: /opt/dvm/log|' \
+      -e 's|^\([[:space:]]*\)activityFilePath:[[:space:]]*\.[[:space:]]*$|\1activityFilePath: /opt/dvm/log|' \
+      -e 's|^\([[:space:]]*\)file:[[:space:]]*iden_table\.dat[[:space:]]*$|\1file: /opt/dvm/iden_table.dat|' \
+      "$DVM_INSTALL_DIR/config.yml"
+    echo "Set only unchanged default runtime paths to absolute /opt/dvm paths."
+  fi
+
+  "${SUDO[@]}" install -d -o dvmhost -g dvmhost -m 0750 "$DVM_INSTALL_DIR/log" 2>/dev/null || \
+    "${SUDO[@]}" install -d -m 0750 "$DVM_INSTALL_DIR/log"
 }
